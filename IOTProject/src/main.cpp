@@ -2,16 +2,18 @@
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <string.h>
+#include <sstream>
+#include <RTClib.h>
 
 // Definir as credenciais da rede Wi-Fi
-const char *ssid = "FTI-LEAL WIFI NETWORK";
-const char *password = "LealWifi0";
+const char *ssid = "Mateus Wifi";
+const char *password = "MateusAbu";
 
 // Definir as credenciais do broker MQTT
-const char *mqtt_server = "4ad73b7d76294cdbb2bd6d96ea9db1cf.s2.eu.hivemq.cloud";
+const char *mqtt_server = "79642a966da549118f1128bb058d42ce.s2.eu.hivemq.cloud";
 const int mqtt_port = 8883;
-const char *mqtt_username = "Alex-IOT";
-const char *mqtt_password = "123456789";
+const char *mqtt_username = "gio.nacimento";
+const char *mqtt_password = "Gio133ebu";
 
 const char *root_ca =
     "-----BEGIN CERTIFICATE-----\n"
@@ -47,9 +49,18 @@ const char *root_ca =
     "-----END CERTIFICATE-----\n";
 
 const int ledPin = 18;
+const int motorB1 = 5;
+const int motorB2 = 6;
 
 const bool ledState = false;
 String mensagem;
+
+RTC_DS1307 rtc;
+
+int Hor;              // Define variável Hora
+int Min;              // Define variável Minuto
+int Sec;              // Define variável Segundo
+int Data;             // Define variável Data
 
 // Inicializar o cliente WiFi e o cliente MQTT
 WiFiClientSecure espClient;
@@ -116,6 +127,13 @@ void setup()
   espClient.setCACert(root_ca); // Onde root_ca é a string do certificado de autoridade de certificação do servidor MQTT
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+
+  rtc.begin();        // Inicia o módulo RTC
+ 
+  pinMode(motorB1, OUTPUT);   // Pino 5 é um pino de saída de sinal
+  pinMode(motorB2, OUTPUT);   // Pino 6 é um pino de saída de sinal
+ 
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));     // Ajuste Automático da hora e data
 }
 
 void loop()
@@ -128,6 +146,49 @@ void loop()
   if (client.connected())
   {
     // client.publish("message", "jadshgdiuaudniajdioasdfsa");
+
+      Hor = rtc.now().hour();       // Verifica a Hora
+      Min = rtc.now().minute();     // Verifica os Minutos
+      Sec = rtc.now().second();     // Verifica os Segundos
+      Data = rtc.now().dayOfTheWeek();       // Verifica o Dia
+    
+      String diaM, HorM, MinM;
+
+      __getline(mensagem, diaM, '-');
+      __getline(mensagem, HorM, '-');
+      __getline(mensagem, MinM );
+
+      // Verifica o horário e o dia são os mesmos recebidos na mensagem
+      if ( Hor == HorM &&  Min == MinM && Sec == 00 && Data == diaM ) {
+        analogWrite(motorB1, 255);
+        analogWrite(motorB2, 0);
+        delay(3000);
+        analogWrite(motorB1, 0);
+        analogWrite(motorB2, 255);
+        delay(2000);
+        analogWrite(motorB1, 255);
+        analogWrite(motorB2, 0);
+        delay(3000);
+        analogWrite(motorB1, 0);
+        analogWrite(motorB2, 0);
+      }
+    
+      // Verifica o horário e se o mesmo for igual à 18:00:00
+      // if ( Hor == 18 &&  Min == 00 && Sec == 00 && Data == diaM ) {
+      //   analogWrite(motorB1, 255);
+      //   analogWrite(motorB2, 0);
+      //   delay(3000);
+      //   analogWrite(motorB1, 0);
+      //   analogWrite(motorB2, 255);
+      //   delay(2000);
+      //   analogWrite(motorB1, 255);
+      //   analogWrite(motorB2, 0);
+      //   delay(3000);
+      //   analogWrite(motorB1, 0);
+      //   analogWrite(motorB2, 0);
+      // }
+ 
+      delay(1000);          
   }
   else
   {
