@@ -151,11 +151,12 @@ void loop()
       Min = rtc.now().minute();     // Verifica os Minutos
       Sec = rtc.now().second();     // Verifica os Segundos
       Data = rtc.now().dayOfTheWeek();       // Verifica o Dia
+      //Falta adaptar se vamos fazer o array desse dia da semana aqui ou no outro código
     
       String diaM, HorM, MinM;
 
       __getline(mensagem, diaM, '-');
-      __getline(mensagem, HorM, '-');
+      __getline(mensagem, HorM, ':');
       __getline(mensagem, MinM );
 
       // Verifica o horário e o dia são os mesmos recebidos na mensagem
