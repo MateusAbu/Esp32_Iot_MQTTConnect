@@ -4,6 +4,10 @@
 #include <string.h>
 #include <sstream>
 #include <RTClib.h>
+#include <iostream>
+#include <vector>
+#include <string>
+using namespace std;
 
 // Definir as credenciais da rede Wi-Fi
 const char *ssid = "Mateus Wifi";
@@ -53,7 +57,7 @@ const int motorB1 = 5;
 const int motorB2 = 6;
 
 const bool ledState = false;
-String mensagem;
+string mensagem;
 
 RTC_DS1307 rtc;
 
@@ -77,7 +81,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   Serial.print("Mensagem recebida no tópico [");
   Serial.print(topic);
   Serial.print("]: ");
-  Serial.println(mensagem);
+  // Serial.println(mensagem);
   Serial.println();
 }
 
@@ -136,6 +140,18 @@ void setup()
   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));     // Ajuste Automático da hora e data
 }
 
+vector<string> tokenize(string s, string del = " ")
+{
+    vector<string> tokens;
+    int start, end = -1 * del.size();
+    do {
+        start = end + del.size();
+        end = s.find(del, start);
+        tokens.push_back(s.substr(start, end - start));
+    } while (end != -1);
+    return tokens;
+}
+
 void loop()
 {
   mensagem == "on" ? digitalWrite(ledPin, HIGH) : digitalWrite(ledPin, LOW);
@@ -152,15 +168,27 @@ void loop()
       Sec = rtc.now().second();     // Verifica os Segundos
       Data = rtc.now().dayOfTheWeek();       // Verifica o Dia
       //Falta adaptar se vamos fazer o array desse dia da semana aqui ou no outro código
-    
-      String diaM, HorM, MinM;
+      ostringstream oss;  // fluxo de saída de string
+      oss << Hor;         // insere o valor do número no fluxo
+      string Horstr = oss.str();  // extrai o valor do fluxo para uma string
+      oss.str("");        // limpa o conteúdo do fluxo
 
-      __getline(mensagem, diaM, '-');
-      __getline(mensagem, HorM, ':');
-      __getline(mensagem, MinM );
+      oss << Min;         // insere o valor do número no fluxo
+      string Minstr = oss.str();  // extrai o valor do fluxo para uma string
+      oss.str("");        // limpa o conteúdo do fluxo
+
+      oss << Data;         // insere o valor do número no fluxo
+      string Datastr = oss.str();  // extrai o valor do fluxo para uma string
+      oss.str("");        // limpa o conteúdo do fluxo
+
+      vector<string> substrings = tokenize(mensagem, ":");
+
+      for (int i = 0; i < substrings.size(); i++) {
+        cout << "Substring " << i << ": " << substrings[i] << endl;
+      
 
       // Verifica o horário e o dia são os mesmos recebidos na mensagem
-      if ( Hor == HorM &&  Min == MinM && Sec == 00 && Data == diaM ) {
+      if ( Horstr == substrings[1] &&  Minstr == substrings[2] && Sec == 00 && Datastr == substrings[0] ) {
         analogWrite(motorB1, 255);
         analogWrite(motorB2, 0);
         delay(3000);
@@ -173,7 +201,7 @@ void loop()
         analogWrite(motorB1, 0);
         analogWrite(motorB2, 0);
       }
-    
+    }
       // Verifica o horário e se o mesmo for igual à 18:00:00
       // if ( Hor == 18 &&  Min == 00 && Sec == 00 && Data == diaM ) {
       //   analogWrite(motorB1, 255);
