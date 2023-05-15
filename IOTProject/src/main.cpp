@@ -1,12 +1,12 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
-#include <string.h>
-#include <sstream>
 #include <RTClib.h>
-#include <iostream>
+#include <sstream>
 #include <vector>
-#include <string>
+#include <iostream>
+#include <time.h>
+
 using namespace std;
 
 // Definir as credenciais da rede Wi-Fi
@@ -14,10 +14,10 @@ const char *ssid = "Mateus Wifi";
 const char *password = "MateusAbu";
 
 // Definir as credenciais do broker MQTT
-const char *mqtt_server = "79642a966da549118f1128bb058d42ce.s2.eu.hivemq.cloud";
+const char *mqtt_server = "f196f38f1bb3475dae36136af23cb2e3.s2.eu.hivemq.cloud";
 const int mqtt_port = 8883;
-const char *mqtt_username = "gio.nacimento";
-const char *mqtt_password = "Gio133ebu";
+const char *mqtt_username = "admin";
+const char *mqtt_password = "Admin123";
 
 const char *root_ca =
     "-----BEGIN CERTIFICATE-----\n"
@@ -53,22 +53,24 @@ const char *root_ca =
     "-----END CERTIFICATE-----\n";
 
 const int ledPin = 18;
-const int motorB1 = 5;
-const int motorB2 = 6;
+const int motorB1 = 26;
+const int motorB2 = 27;
+
+int Hor;
+int Min;
+int Sec;
+int Data;
+
+struct tm data;
 
 const bool ledState = false;
-string mensagem;
-
-RTC_DS1307 rtc;
-
-int Hor;              // Define variável Hora
-int Min;              // Define variável Minuto
-int Sec;              // Define variável Segundo
-int Data;             // Define variável Data
+String mensagem;
 
 // Inicializar o cliente WiFi e o cliente MQTT
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
+
+RTC_DS3231 rtc;
 
 // Função de callback chamada quando uma mensagem é recebida no tópico inscrito
 void callback(char *topic, byte *payload, unsigned int length)
@@ -81,7 +83,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   Serial.print("Mensagem recebida no tópico [");
   Serial.print(topic);
   Serial.print("]: ");
-  // Serial.println(mensagem);
+  Serial.println(mensagem);
   Serial.println();
 }
 
@@ -96,7 +98,7 @@ void reconnect()
     {
       Serial.println("Conectado");
       // Inscreva-se em um tópico MQTT
-      client.subscribe("message");
+      client.subscribe("messages");
     }
     else
     {
@@ -114,6 +116,8 @@ void setup()
   // Inicializar a porta serial para depuração
   Serial.begin(9600);
   pinMode(ledPin, OUTPUT);
+  pinMode(motorB1, OUTPUT); 
+  pinMode(motorB2, OUTPUT);   
   // Conectar à rede Wi-Fi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
@@ -121,6 +125,9 @@ void setup()
     delay(1000);
     Serial.println("Conectando à rede Wi-Fi...");
   }
+
+  // Inicia o RTC
+  //  rtc.begin();
 
   // Exibir informações sobre a rede Wi-Fi conectada
   Serial.println("Conectado à rede Wi-Fi");
@@ -132,12 +139,11 @@ void setup()
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 
-  rtc.begin();        // Inicia o módulo RTC
- 
-  pinMode(motorB1, OUTPUT);   // Pino 5 é um pino de saída de sinal
-  pinMode(motorB2, OUTPUT);   // Pino 6 é um pino de saída de sinal
- 
-  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));     // Ajuste Automático da hora e data
+  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
+   timeval tv;
+   tv.tv_sec = 1683998960;
+   settimeofday(&tv, NULL);
 }
 
 vector<string> tokenize(string s, string del = " ")
@@ -154,70 +160,74 @@ vector<string> tokenize(string s, string del = " ")
 
 void loop()
 {
-  mensagem == "on" ? digitalWrite(ledPin, HIGH) : digitalWrite(ledPin, LOW);
-  // delay(500); // Aguarda um breve intervalo para evitar detecções múltiplas do botão
-  // delay(500); // Aguarda um breve intervalo para evitar detecções múltiplas do botão
+
+  vTaskDelay(pdMS_TO_TICKS(1000));
+  time_t tt = time(NULL);
+  data = *gmtime(&tt);
+  char data_formatada[64];
+  strftime(data_formatada, 64, "%d/%m/%Y %H:%M:%S", &data);
+  // printf("\nUnix Time: %d\n", int32_t(tt));//Mostra na Serial o Unix time
+  // printf("Data formatada: %s\n", data_formatada);//Mostra na Serial a data formatada
+
+  if(mensagem == "on") {
+    digitalWrite(motorB1, HIGH);
+    digitalWrite(motorB2, LOW);
+    delay(3000);
+    digitalWrite(motorB1, LOW);
+  } else {
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, LOW);
+  }
 
   // Publicação de mensagem no tópico
   if (client.connected())
   {
     // client.publish("message", "jadshgdiuaudniajdioasdfsa");
+    // DateTime now = rtc.now();
+    // Hor = now.hour();
+    // Min = now.minute();     
+    // Sec = now.second();     
+    // Data = now.dayOfTheWeek();
+      // ostringstream oss;  // fluxo de saída de string
+      // oss << Hor;         // insere o valor do número no fluxo
+      // string Horstr = oss.str();  // extrai o valor do fluxo para uma string
+      // oss.str("");        // limpa o conteúdo do fluxo
 
-      Hor = rtc.now().hour();       // Verifica a Hora
-      Min = rtc.now().minute();     // Verifica os Minutos
-      Sec = rtc.now().second();     // Verifica os Segundos
-      Data = rtc.now().dayOfTheWeek();       // Verifica o Dia
-      //Falta adaptar se vamos fazer o array desse dia da semana aqui ou no outro código
-      ostringstream oss;  // fluxo de saída de string
-      oss << Hor;         // insere o valor do número no fluxo
-      string Horstr = oss.str();  // extrai o valor do fluxo para uma string
-      oss.str("");        // limpa o conteúdo do fluxo
+      // oss << Min;         // insere o valor do número no fluxo
+      // string Minstr = oss.str();  // extrai o valor do fluxo para uma string
+      // oss.str("");        // limpa o conteúdo do fluxo
 
-      oss << Min;         // insere o valor do número no fluxo
-      string Minstr = oss.str();  // extrai o valor do fluxo para uma string
-      oss.str("");        // limpa o conteúdo do fluxo
+      // oss << Data;         // insere o valor do número no fluxo
+      // string Datastr = oss.str();  // extrai o valor do fluxo para uma string
+      // oss.str(""); 
 
-      oss << Data;         // insere o valor do número no fluxo
-      string Datastr = oss.str();  // extrai o valor do fluxo para uma string
-      oss.str("");        // limpa o conteúdo do fluxo
+      // Serial.println(Hor);
+      // Serial.println(Min);
+      // Serial.println(Data);
 
-      vector<string> substrings = tokenize(mensagem, ":");
+      // if(mensagem != "") {
+      // vector<string> substrings = tokenize(mensagem, ":");
 
-      for (int i = 0; i < substrings.size(); i++) {
-        cout << "Substring " << i << ": " << substrings[i] << endl;
-      
+      //   for (int i = 0; i < substrings.size(); i++) {
+      //     cout << "Substring " << i << ": " << substrings[i] << endl;
 
-      // Verifica o horário e o dia são os mesmos recebidos na mensagem
-      if ( Horstr == substrings[1] &&  Minstr == substrings[2] && Sec == 00 && Datastr == substrings[0] ) {
-        analogWrite(motorB1, 255);
-        analogWrite(motorB2, 0);
-        delay(3000);
-        analogWrite(motorB1, 0);
-        analogWrite(motorB2, 255);
-        delay(2000);
-        analogWrite(motorB1, 255);
-        analogWrite(motorB2, 0);
-        delay(3000);
-        analogWrite(motorB1, 0);
-        analogWrite(motorB2, 0);
-      }
-    }
-      // Verifica o horário e se o mesmo for igual à 18:00:00
-      // if ( Hor == 18 &&  Min == 00 && Sec == 00 && Data == diaM ) {
-      //   analogWrite(motorB1, 255);
-      //   analogWrite(motorB2, 0);
-      //   delay(3000);
-      //   analogWrite(motorB1, 0);
-      //   analogWrite(motorB2, 255);
-      //   delay(2000);
-      //   analogWrite(motorB1, 255);
-      //   analogWrite(motorB2, 0);
-      //   delay(3000);
-      //   analogWrite(motorB1, 0);
-      //   analogWrite(motorB2, 0);
+        // Verifica o horário e o dia são os mesmos recebidos na mensagem
+        // if ( Horstr == substrings[1] &&  Minstr == substrings[2] && Sec == 00 && Datastr == substrings[0] ) {
+        //   analogWrite(motorB1, 255);
+        //   analogWrite(motorB2, 0);
+        //   delay(3000);
+        //   analogWrite(motorB1, 0);
+        //   analogWrite(motorB2, 255);
+        //   delay(2000);
+        //   analogWrite(motorB1, 255);
+        //   analogWrite(motorB2, 0);
+        //   delay(3000);
+        //   analogWrite(motorB1, 0);
+        //   analogWrite(motorB2, 0);
+        // }
+      //   }
       // }
- 
-      delay(1000);          
+      
   }
   else
   {
