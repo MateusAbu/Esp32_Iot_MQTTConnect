@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
+#include <string.h>
 #include <RTClib.h>
 #include <sstream>
 #include <vector>
@@ -52,25 +53,14 @@ const char *root_ca =
     "emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=\n"
     "-----END CERTIFICATE-----\n";
 
-const int ledPin = 18;
 const int motorB1 = 26;
 const int motorB2 = 27;
 
-int Hor;
-int Min;
-int Sec;
-int Data;
-
-struct tm data;
-
-const bool ledState = false;
 String mensagem;
 
 // Inicializar o cliente WiFi e o cliente MQTT
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
-
-RTC_DS3231 rtc;
 
 // Função de callback chamada quando uma mensagem é recebida no tópico inscrito
 void callback(char *topic, byte *payload, unsigned int length)
@@ -115,7 +105,6 @@ void setup()
 {
   // Inicializar a porta serial para depuração
   Serial.begin(9600);
-  pinMode(ledPin, OUTPUT);
   pinMode(motorB1, OUTPUT); 
   pinMode(motorB2, OUTPUT);   
   // Conectar à rede Wi-Fi
@@ -125,9 +114,6 @@ void setup()
     delay(1000);
     Serial.println("Conectando à rede Wi-Fi...");
   }
-
-  // Inicia o RTC
-  //  rtc.begin();
 
   // Exibir informações sobre a rede Wi-Fi conectada
   Serial.println("Conectado à rede Wi-Fi");
@@ -139,96 +125,146 @@ void setup()
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 
-  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-
-   timeval tv;
-   tv.tv_sec = 1683998960;
-   settimeofday(&tv, NULL);
+  configTime(0, 0, "pool.ntp.org");
 }
 
 vector<string> tokenize(string s, string del = " ")
 {
-    vector<string> tokens;
-    int start, end = -1 * del.size();
-    do {
-        start = end + del.size();
-        end = s.find(del, start);
-        tokens.push_back(s.substr(start, end - start));
-    } while (end != -1);
-    return tokens;
+  vector<string> tokens;
+  int start, end = -1 * del.size();
+  do
+  {
+    start = end + del.size();
+    end = s.find(del, start);
+    tokens.push_back(s.substr(start, end - start));
+  } while (end != -1);
+  return tokens;
 }
 
 void loop()
 {
-
-  vTaskDelay(pdMS_TO_TICKS(1000));
-  time_t tt = time(NULL);
-  data = *gmtime(&tt);
-  char data_formatada[64];
-  strftime(data_formatada, 64, "%d/%m/%Y %H:%M:%S", &data);
-  // printf("\nUnix Time: %d\n", int32_t(tt));//Mostra na Serial o Unix time
-  // printf("Data formatada: %s\n", data_formatada);//Mostra na Serial a data formatada
-
-  if(mensagem == "on") {
-    digitalWrite(motorB1, HIGH);
-    digitalWrite(motorB2, LOW);
-    delay(3000);
-    digitalWrite(motorB1, LOW);
-  } else {
-    digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, LOW);
-  }
-
-  // Publicação de mensagem no tópico
-  if (client.connected())
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo))
   {
-    // client.publish("message", "jadshgdiuaudniajdioasdfsa");
-    // DateTime now = rtc.now();
-    // Hor = now.hour();
-    // Min = now.minute();     
-    // Sec = now.second();     
-    // Data = now.dayOfTheWeek();
-      // ostringstream oss;  // fluxo de saída de string
-      // oss << Hor;         // insere o valor do número no fluxo
-      // string Horstr = oss.str();  // extrai o valor do fluxo para uma string
-      // oss.str("");        // limpa o conteúdo do fluxo
+    int diaSemana = timeinfo.tm_wday;
+    int hora = timeinfo.tm_hour;
+    int minuto = timeinfo.tm_min;
+    int segundo = timeinfo.tm_sec;
 
-      // oss << Min;         // insere o valor do número no fluxo
-      // string Minstr = oss.str();  // extrai o valor do fluxo para uma string
-      // oss.str("");        // limpa o conteúdo do fluxo
+    if (client.connected())
+    {
+      if (mensagem != "")
+      {
+        std::string mensagemStd = mensagem.c_str();
+        vector<string> substrings = tokenize(mensagemStd, ":");
+        std::string datastr = substrings[0];
+        std::string horstr1 = substrings[1];
+        std::string minstr1 = substrings[2];
+        std::string horstr2 = substrings[3];
+        std::string minstr2 = substrings[4];
 
-      // oss << Data;         // insere o valor do número no fluxo
-      // string Datastr = oss.str();  // extrai o valor do fluxo para uma string
-      // oss.str(""); 
+        // Converte as substrings para inteiros
+        int dataInt = std::stoi(datastr);
+        int horaInt1 = std::stoi(horstr1);
+        int minutoInt1 = std::stoi(minstr1);
+        int horaInt2 = std::stoi(horstr2);
+        int minutoInt2 = std::stoi(minstr2);
 
-      // Serial.println(Hor);
-      // Serial.println(Min);
-      // Serial.println(Data);
+        int horarios[7][4] = {
+            {0, 0, 0, 0}, // Domingo: 0:00
+            {0, 0, 0, 0}, // Segunda-feira: 0:00
+            {0, 0, 0, 0}, // Terça-feira: 0:00
+            {0, 0, 0, 0}, // Quarta-feira: 0:00
+            {0, 0, 0, 0}, // Quinta-feira: 0:00
+            {0, 0, 0, 0}, // Sexta-feira: 0:00
+            {0, 0, 0, 0}  // Sábado: 0:00
+        };
 
-      // if(mensagem != "") {
-      // vector<string> substrings = tokenize(mensagem, ":");
+        // Defina os horários para cada dia da semana
+        switch (dataInt)
+        {
+        case 0: // Domingo
+          horarios[0][0] = horaInt1;
+          horarios[0][1] = minutoInt1;
+          horarios[0][2] = horaInt2;
+          horarios[0][3] = minutoInt2;
+          break;
+        case 1: // Segunda-feira
+          horarios[1][0] = horaInt1;
+          horarios[1][1] = minutoInt1;
+          horarios[1][2] = horaInt2;
+          horarios[1][3] = minutoInt2;
+          break;
+        case 2: // Terça-feira
+          horarios[2][0] = horaInt1;
+          horarios[2][1] = minutoInt1;
+          horarios[2][2] = horaInt2;
+          horarios[2][3] = minutoInt2;
+          break;
+        case 3: // Quarta-feira
+          horarios[3][0] = horaInt1;
+          horarios[3][1] = minutoInt1;
+          horarios[3][2] = horaInt2;
+          horarios[3][3] = minutoInt2;
+          break;
+        case 4: // Quinta-feira
+          horarios[4][0] = horaInt1;
+          horarios[4][1] = minutoInt1;
+          horarios[4][2] = horaInt2;
+          horarios[4][3] = minutoInt2;
+          break;
+        case 5: // Sexta-feira
+          horarios[5][0] = horaInt1;
+          horarios[5][1] = minutoInt1;
+          horarios[5][2] = horaInt2;
+          horarios[5][3] = minutoInt2;
+          break;
+        case 6: // Sábado
+          horarios[6][0] = horaInt1;
+          horarios[6][1] = minutoInt1;
+          horarios[6][2] = horaInt2;
+          horarios[6][3] = minutoInt2;
+          break;
+        }
 
-      //   for (int i = 0; i < substrings.size(); i++) {
-      //     cout << "Substring " << i << ": " << substrings[i] << endl;
+        // Verifique o horário para o dia da semana atual
+        int horaEsperada1 = horarios[dataInt][0];
+        int minutoEsperado1 = horarios[dataInt][1];
+        int horaEsperada2 = horarios[dataInt][2];
+        int minutoEsperado2 = horarios[dataInt][3];
+
+        for (int i = 0; i < 7; i++)
+        {
+          for (int j = 0; j < 4; j++)
+          {
+            Serial.print(horarios[i][j]);
+            Serial.print(" ");
+          }
+          Serial.println();
+        }
 
         // Verifica o horário e o dia são os mesmos recebidos na mensagem
-        // if ( Horstr == substrings[1] &&  Minstr == substrings[2] && Sec == 00 && Datastr == substrings[0] ) {
-        //   analogWrite(motorB1, 255);
-        //   analogWrite(motorB2, 0);
-        //   delay(3000);
-        //   analogWrite(motorB1, 0);
-        //   analogWrite(motorB2, 255);
-        //   delay(2000);
-        //   analogWrite(motorB1, 255);
-        //   analogWrite(motorB2, 0);
-        //   delay(3000);
-        //   analogWrite(motorB1, 0);
-        //   analogWrite(motorB2, 0);
-        // }
-      //   }
-      // }
-      
-  }
+        if ((hora - 3) == horaEsperada1 && minuto == minutoEsperado1 && segundo == 0 && diaSemana == dataInt)
+        {
+          Serial.println("Funcionou");
+          // analogWrite(motorB1, 255);
+          // analogWrite(motorB2, 0);
+          // delay(3000);
+          // analogWrite(motorB1, 0);
+          // analogWrite(motorB2, 255);
+          // delay(2000);
+          // analogWrite(motorB1, 255);
+          // analogWrite(motorB2, 0);
+          // delay(3000);
+          // analogWrite(motorB1, 0);
+          // analogWrite(motorB2, 0);
+        }
+        else if ((hora - 3) == horaEsperada2 && minuto == minutoEsperado2 && segundo == 0 && diaSemana == dataInt)
+        {
+          Serial.println("Funcionou");
+        }
+      }
+    }
   else
   {
     // Reconexão ao MQTT caso a conexão seja perdida
@@ -236,4 +272,5 @@ void loop()
   }
   // Mantenha o cliente MQTT conectado e processe as mensagens recebidas
   client.loop();
+  }
 }
