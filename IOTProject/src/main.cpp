@@ -56,6 +56,16 @@ const char *root_ca =
 const int motorB1 = 26;
 const int motorB2 = 27;
 
+int horarios[7][4] = {
+    {0, 0, 0, 0}, // Domingo: 0:00
+    {0, 0, 0, 0}, // Segunda-feira: 0:00
+    {0, 0, 0, 0}, // Terça-feira: 0:00
+    {0, 0, 0, 0}, // Quarta-feira: 0:00
+    {0, 0, 0, 0}, // Quinta-feira: 0:00
+    {0, 0, 0, 0}, // Sexta-feira: 0:00
+    {0, 0, 0, 0}  // Sábado: 0:00
+};
+
 String mensagem;
 
 // Inicializar o cliente WiFi e o cliente MQTT
@@ -170,16 +180,6 @@ void loop()
         int horaInt2 = std::stoi(horstr2);
         int minutoInt2 = std::stoi(minstr2);
 
-        int horarios[7][4] = {
-            {0, 0, 0, 0}, // Domingo: 0:00
-            {0, 0, 0, 0}, // Segunda-feira: 0:00
-            {0, 0, 0, 0}, // Terça-feira: 0:00
-            {0, 0, 0, 0}, // Quarta-feira: 0:00
-            {0, 0, 0, 0}, // Quinta-feira: 0:00
-            {0, 0, 0, 0}, // Sexta-feira: 0:00
-            {0, 0, 0, 0}  // Sábado: 0:00
-        };
-
         // Defina os horários para cada dia da semana
         switch (dataInt)
         {
@@ -228,40 +228,27 @@ void loop()
         }
 
         // Verifique o horário para o dia da semana atual
-        int horaEsperada1 = horarios[dataInt][0];
-        int minutoEsperado1 = horarios[dataInt][1];
-        int horaEsperada2 = horarios[dataInt][2];
-        int minutoEsperado2 = horarios[dataInt][3];
-
-        for (int i = 0; i < 7; i++)
-        {
-          for (int j = 0; j < 4; j++)
-          {
-            Serial.print(horarios[i][j]);
-            Serial.print(" ");
-          }
-          Serial.println();
-        }
+        int horaEsperada1 = horarios[diaSemana][0];
+        int minutoEsperado1 = horarios[diaSemana][1];
+        int horaEsperada2 = horarios[diaSemana][2];
+        int minutoEsperado2 = horarios[diaSemana][3];
 
         // Verifica o horário e o dia são os mesmos recebidos na mensagem
         if ((hora - 3) == horaEsperada1 && minuto == minutoEsperado1 && segundo == 0 && diaSemana == dataInt)
         {
           Serial.println("Funcionou");
-          // analogWrite(motorB1, 255);
-          // analogWrite(motorB2, 0);
-          // delay(3000);
-          // analogWrite(motorB1, 0);
-          // analogWrite(motorB2, 255);
-          // delay(2000);
-          // analogWrite(motorB1, 255);
-          // analogWrite(motorB2, 0);
-          // delay(3000);
-          // analogWrite(motorB1, 0);
-          // analogWrite(motorB2, 0);
+          digitalWrite(motorB1, HIGH);
+          digitalWrite(motorB2, LOW);
+          delay(3000);
+          digitalWrite(motorB1, LOW);
         }
         else if ((hora - 3) == horaEsperada2 && minuto == minutoEsperado2 && segundo == 0 && diaSemana == dataInt)
         {
           Serial.println("Funcionou");
+          digitalWrite(motorB1, HIGH);
+          digitalWrite(motorB2, LOW);
+          delay(3000);
+          digitalWrite(motorB1, LOW);
         }
       }
     }
