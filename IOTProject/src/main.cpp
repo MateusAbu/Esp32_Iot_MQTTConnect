@@ -53,6 +53,7 @@ const char *root_ca =
     "emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=\n"
     "-----END CERTIFICATE-----\n";
 
+// Declaração das variáveis do motor, sensor e os horários que serão gravados atraves do hivemq
 const int motorB1 = 26;
 const int motorB2 = 27;
 const int trigPin = 5;
@@ -150,6 +151,8 @@ void setup()
   pinMode(echoPin, INPUT);  // Sets the echoPin as an Input
 }
 
+// Função de vetor para separar as strings recebidas atraves do hive a cada ':',
+//  para pegar o dia da semana, hora e minuto dos dois horários
 vector<string> tokenize(string s, string del = " ")
 {
   vector<string> tokens;
@@ -165,6 +168,7 @@ vector<string> tokenize(string s, string del = " ")
 
 void loop()
 {
+  // Pega o horário de agora e salva nas variáveis declaradas a baixo para fim de comparação com a data/hora passada pela mensagem
   struct tm timeinfo;
   if (getLocalTime(&timeinfo))
   {
@@ -195,6 +199,9 @@ void loop()
     Serial.print("Distance (inch): ");
     Serial.println(distanceInch);
 
+    // Aqui a baixo está a condição de rodar somente se o client do hive estiver conectado
+    //  e se as mensagem for diferente de vazia, assim ele vai chamar o vector criado anteriormente
+    //  para separar as strings recebidas e salvar os horários no lugar certo dentro da matriz horarios
     if (client.connected())
     {
       if (mensagem != "")
