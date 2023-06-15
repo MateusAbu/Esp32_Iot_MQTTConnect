@@ -11,8 +11,8 @@
 using namespace std;
 
 // Definir as credenciais da rede Wi-Fi
-const char *ssid = "Mateus Wifi";
-const char *password = "MateusAbu";
+const char *ssid = "Rafa";
+const char *password = "12345678";
 
 // Definir as credenciais do broker MQTT
 const char *mqtt_server = "f196f38f1bb3475dae36136af23cb2e3.s2.eu.hivemq.cloud";
@@ -145,7 +145,7 @@ void setup()
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 
-  configTime(0, 0, "pool.ntp.org");
+  configTime(-3 * 3600, 0, "pool.ntp.org");
 
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
   pinMode(echoPin, INPUT);  // Sets the echoPin as an Input
@@ -176,28 +176,22 @@ void loop()
     int hora = timeinfo.tm_hour;
     int minuto = timeinfo.tm_min;
     int segundo = timeinfo.tm_sec;
+    // digitalWrite(trigPin, LOW);
+    // delayMicroseconds(2);
+    // // Sets the trigPin on HIGH state for 10 micro seconds
+    // digitalWrite(trigPin, HIGH);
+    // delayMicroseconds(10);
+    // digitalWrite(trigPin, LOW);
 
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(2);
-    // Sets the trigPin on HIGH state for 10 micro seconds
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
+    // // Reads the echoPin, returns the sound wave travel time in microseconds
+    // duration = pulseIn(echoPin, HIGH);
 
-    // Reads the echoPin, returns the sound wave travel time in microseconds
-    duration = pulseIn(echoPin, HIGH);
+    // // Calculate the distance
+    // distanceCm = duration * SOUND_SPEED / 2;
 
-    // Calculate the distance
-    distanceCm = duration * SOUND_SPEED / 2;
-
-    // Convert to inches
-    distanceInch = distanceCm * CM_TO_INCH;
-
-    // Prints the distance in the Serial Monitor
-    Serial.print("Distance (cm): ");
-    Serial.println(distanceCm);
-    Serial.print("Distance (inch): ");
-    Serial.println(distanceInch);
+    // // Prints the distance in the Serial Monitor
+    // Serial.print("Distance (cm): ");
+    // Serial.println(distanceCm);
 
     // Aqui a baixo está a condição de rodar somente se o client do hive estiver conectado
     //  e se as mensagem for diferente de vazia, assim ele vai chamar o vector criado anteriormente
@@ -221,52 +215,12 @@ void loop()
         int horaInt2 = std::stoi(horstr2);
         int minutoInt2 = std::stoi(minstr2);
 
+          horarios[dataInt][0] = horaInt1;
+          horarios[dataInt][1] = minutoInt1;
+          horarios[dataInt][2] = horaInt2;
+          horarios[dataInt][3] = minutoInt2;
+        
         // Defina os horários para cada dia da semana
-        switch (dataInt)
-        {
-        case 0: // Domingo
-          horarios[0][0] = horaInt1;
-          horarios[0][1] = minutoInt1;
-          horarios[0][2] = horaInt2;
-          horarios[0][3] = minutoInt2;
-          break;
-        case 1: // Segunda-feira
-          horarios[1][0] = horaInt1;
-          horarios[1][1] = minutoInt1;
-          horarios[1][2] = horaInt2;
-          horarios[1][3] = minutoInt2;
-          break;
-        case 2: // Terça-feira
-          horarios[2][0] = horaInt1;
-          horarios[2][1] = minutoInt1;
-          horarios[2][2] = horaInt2;
-          horarios[2][3] = minutoInt2;
-          break;
-        case 3: // Quarta-feira
-          horarios[3][0] = horaInt1;
-          horarios[3][1] = minutoInt1;
-          horarios[3][2] = horaInt2;
-          horarios[3][3] = minutoInt2;
-          break;
-        case 4: // Quinta-feira
-          horarios[4][0] = horaInt1;
-          horarios[4][1] = minutoInt1;
-          horarios[4][2] = horaInt2;
-          horarios[4][3] = minutoInt2;
-          break;
-        case 5: // Sexta-feira
-          horarios[5][0] = horaInt1;
-          horarios[5][1] = minutoInt1;
-          horarios[5][2] = horaInt2;
-          horarios[5][3] = minutoInt2;
-          break;
-        case 6: // Sábado
-          horarios[6][0] = horaInt1;
-          horarios[6][1] = minutoInt1;
-          horarios[6][2] = horaInt2;
-          horarios[6][3] = minutoInt2;
-          break;
-        }
 
         // Verifique o horário para o dia da semana atual
         int horaEsperada1 = horarios[diaSemana][0];
@@ -274,8 +228,17 @@ void loop()
         int horaEsperada2 = horarios[diaSemana][2];
         int minutoEsperado2 = horarios[diaSemana][3];
 
+        // int test = hora;
+        // Serial.println("hora");
+        // Serial.println(test);
+        // Serial.println(horaEsperada1);
+        // Serial.println(minuto);
+        // Serial.println(minutoEsperado1);
+        //Serial.println(diaSemana);
+        // Serial.println(dataInt);
+
         // Verifica o horário e o dia são os mesmos recebidos na mensagem
-        if ((hora - 3) == horaEsperada1 && minuto == minutoEsperado1 && segundo == 0 && diaSemana == dataInt)
+        if (hora == horaEsperada1 && minuto == minutoEsperado1 && segundo == 0)
         {
           Serial.println("Funcionou");
           digitalWrite(motorB1, HIGH);
@@ -283,7 +246,7 @@ void loop()
           delay(3000);
           digitalWrite(motorB1, LOW);
         }
-        else if ((hora - 3) == horaEsperada2 && minuto == minutoEsperado2 && segundo == 0 && diaSemana == dataInt)
+        else if (hora == horaEsperada2 && minuto == minutoEsperado2 && segundo == 0)
         {
           Serial.println("Funcionou");
           digitalWrite(motorB1, HIGH);
